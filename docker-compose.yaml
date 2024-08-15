@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.0.11-alpine
+  maindjango:
+    container_name: maindjango
+    env_file: .env
+    build: 
+      context: ./celeryBlogAPI
+    command: python manage.py runserver 0.0.0.0:8000
+    # run 'python manage.py collectstatic' and change .env DEBUG before trying prod
+    #command: gunicorn django_project.wsgi -b 0.0.0.0:8000 --log-file -
+    volumes:
+      - ./celeryBlogAPI:/usr/src/app/
+    ports:
+      - 8001:8000
+    environment:
+    #  - DEBUG=1
+    #  - SECRET_KEY=3948938457934875
+      - ALLOWED_HOST=localhost,127.0.0.1
+      - API_RENDERER=rest_framework.renderers.JSONRenderer
+      - API_RENDERER2=rest_framework.renderers.BrowsableAPIRenderer
+    depends_on:
+      - redis
+  celeryshort:
+    container_name: celeryshort
+    env_file: .env
+    build: 
+      context: ./celeryBlogAPI
+    command: celery --app=django_project worker -l INFO -Q queueshort
+    volumes:
+      - ./celeryBlogAPI:/usr/src/app/
+    environment:
+    #  - DEBUG=1
+    #  - SECRET_KEY=3948938457934875
+      - ALLOWED_HOST=localhost,127.0.0.1
+      - API_RENDERER=rest_framework.renderers.JSONRenderer
+      - API_RENDERER2=rest_framework.renderers.BrowsableAPIRenderer
+    depends_on:
+      - redis
+
+  celerylong:
+    container_name: celerylong
+    build: 
+      context: ./celeryworker
+      dockerfile: Dockerfile
+    command: celery -A celerytask worker -l INFO -Q queuelong
+    volumes:
+      - ./celeryworker:/usr/src/app/
+    depends_on:
+      - redis
+      - maindjango
