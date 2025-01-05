@@ -21,6 +21,8 @@ services:
       - ALLOWED_HOST=localhost,127.0.0.1
       - API_RENDERER=rest_framework.renderers.JSONRenderer
       - API_RENDERER2=rest_framework.renderers.BrowsableAPIRenderer
+    # for nginx-proxy
+      - VIRTUAL_HOST=localhost
     depends_on:
       - redis
   celeryshort:
@@ -51,3 +53,11 @@ services:
     depends_on:
       - redis
       - maindjango
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./files/certs/:/etc/nginx/certs/
